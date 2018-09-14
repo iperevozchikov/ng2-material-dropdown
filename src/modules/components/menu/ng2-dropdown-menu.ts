@@ -115,7 +115,11 @@ export class Ng2DropdownMenu {
 
         if (!this.state.menuState.isVisible) {
             // setting handlers
-            this.listeners.handleKeypress = this.renderer.listen(dc.body, 'keydown', this.handleKeypress.bind(this));
+            if (dc) {
+                this.listeners.handleKeypress = this.renderer
+                    .listen(dc.body, 'keydown', this.handleKeypress.bind(this));
+            }
+
             this.listeners.arrowHandler = this.renderer.listen(wd, 'keydown', arrowKeysHandler);
         }
 
@@ -138,8 +142,13 @@ export class Ng2DropdownMenu {
         this.state.dropdownState.unselect();
 
         // call function to unlisten
-        this.listeners.arrowHandler ? this.listeners.arrowHandler() : undefined;
-        this.listeners.handleKeypress ? this.listeners.handleKeypress() : undefined;
+        if (this.listeners.arrowHandler) {
+            this.listeners.arrowHandler();
+        }
+
+        if (this.listeners.handleKeypress) {
+            this.listeners.handleKeypress();
+        }
     }
 
     /**
@@ -161,7 +170,7 @@ export class Ng2DropdownMenu {
     public handleKeypress($event): void {
         const key = $event.keyCode;
         const items = this.items.toArray();
-        const index = items.indexOf(this.state.dropdownState.selectedItem);
+        const index = items.indexOf(this.state.dropdownState.selectedItem!);
 
         if (!ACTIONS.hasOwnProperty(key)) {
             return;
@@ -181,7 +190,7 @@ export class Ng2DropdownMenu {
      * @name calcPositionOffset
      * @param position
      */
-    private calcPositionOffset(position): { top: string, left: string } {
+    private calcPositionOffset(position): { top: string, left: string } | undefined {
         const wd = typeof window !== 'undefined' ? window : undefined;
         const dc = typeof document !== 'undefined' ? document : undefined;
 
@@ -244,7 +253,7 @@ export class Ng2DropdownMenu {
 
     public ngOnInit() {
         const dc = typeof document !== 'undefined' ? document : undefined;
-        if (this.appendToBody) {
+        if (this.appendToBody && dc) {
             // append menu element to the body
             dc.body.appendChild(this.element.nativeElement);
         }
