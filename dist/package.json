@@ -2,14 +2,6 @@
   "name": "ng2-material-dropdown",
   "version": "0.10.1",
   "description": "Angular material-like dropdown component",
-  "scripts": {
-    "release": "npm run build && npm publish dist",
-    "postrelease": "rm -rf dist",
-    "build": "ng-packagr -p package.json && mkdir ./dist/dist && cp ./dist/bundles/ng2-material-dropdown.umd.js ./dist/dist/ng2-dropdown.bundle.js",
-    "server": "webpack-dev-server --config webpack.demo.js --inline --colors --progress --display-error-details --display-cached --port 3005  --content-base demo",
-    "start": "npm run server",
-    "test": "karma start karma.conf.js --single-run"
-  },
   "author": {
     "name": "Giancarlo Buomprisco",
     "email": "giancarlopsk@gmail.com"
@@ -84,20 +76,18 @@
     "url": "https://github.com/Gbuomprisco/ng2-material-dropdown/issues"
   },
   "homepage": "https://github.com/Gbuomprisco/ng2-material-dropdown",
-  "main": "./dist/bundles/ng2-material-dropdown.umd.js",
+  "main": "bundles/ng2-material-dropdown.umd.js",
   "$schema": "./node_modules/ng-packagr/package.schema.json",
-  "module": "./dist/fesm5/ng2-material-dropdown.js",
-  "es2015": "./dist/fesm2015/ng2-material-dropdown.js",
-  "esm5": "./dist/esm5/ng2-material-dropdown.js",
-  "esm2015": "./dist/esm2015/ng2-material-dropdown.js",
-  "fesm5": "./dist/fesm5/ng2-material-dropdown.js",
-  "fesm2015": "./dist/fesm2015/ng2-material-dropdown.js",
-  "typings": "./dist/ng2-material-dropdown.d.ts",
-  "metadata": "./dist/ng2-material-dropdown.metadata.json",
+  "module": "fesm5/ng2-material-dropdown.js",
+  "es2015": "fesm2015/ng2-material-dropdown.js",
+  "esm5": "esm5/ng2-material-dropdown.js",
+  "esm2015": "esm2015/ng2-material-dropdown.js",
+  "fesm5": "fesm5/ng2-material-dropdown.js",
+  "fesm2015": "fesm2015/ng2-material-dropdown.js",
+  "typings": "ng2-material-dropdown.d.ts",
+  "metadata": "ng2-material-dropdown.metadata.json",
   "sideEffects": false,
-  "ngPackage": {
-    "lib": {
-      "entryFile": "index.ts"
-    }
+  "dependencies": {
+    "tslib": "^1.9.0"
   }
 }
