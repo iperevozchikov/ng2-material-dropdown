@@ -2,7 +2,8 @@ import {
     Component,
     Input,
     Renderer,
-    ElementRef
+    ElementRef,
+    OnDestroy
 } from '@angular/core';
 
 import { DropdownStateService } from '../../services/dropdown-state.service';
@@ -12,18 +13,16 @@ import { DropdownStateService } from '../../services/dropdown-state.service';
     styleUrls: [ './style.scss' ],
     templateUrl: './template.html'
 })
-export class Ng2MenuItem {
+export class Ng2MenuItem implements OnDestroy {
     /**
      * @preventClose
      * @desc if true, clicking on the item won't close the dropdown
-     * @type {boolean}
      */
     @Input() public preventClose: boolean = false;
 
     /**
      * @name value
      * @desc any value associated to the item
-     * @type {any}
      */
     @Input() public value: any;
 
@@ -31,10 +30,13 @@ export class Ng2MenuItem {
                 private element: ElementRef,
                 private renderer: Renderer) {}
 
+    public ngOnDestroy(): void {
+        this.state.dropdownState.onItemDestroyed.emit(this);
+    }
+
     /**
      * @name isSelected
      * @desc returns current selected item
-     * @returns {boolean}
      */
     public get isSelected(): boolean {
         return this === this.state.dropdownState.selectedItem;

@@ -10,6 +10,7 @@ import {
 import { Ng2DropdownButton } from '../button/ng2-dropdown-button';
 import { Ng2DropdownMenu } from '../menu/ng2-dropdown-menu';
 import { DropdownStateService } from '../../services/dropdown-state.service';
+import { Ng2MenuItem } from '../menu-item/ng2-menu-item';
 
 @Component({
     selector: 'ng2-dropdown',
@@ -21,7 +22,7 @@ export class Ng2Dropdown {
     @ContentChild(Ng2DropdownButton) public button: Ng2DropdownButton;
     @ContentChild(Ng2DropdownMenu) public menu: Ng2DropdownMenu;
 
-    @Input() public dynamicUpdate: boolean = true;
+    @Input() public dynamicUpdate = true;
 
     // outputs
     @Output() public onItemClicked: EventEmitter<string> = new EventEmitter<string>();
@@ -30,6 +31,43 @@ export class Ng2Dropdown {
     @Output() public onHide: EventEmitter<Ng2Dropdown> = new EventEmitter<Ng2Dropdown>();
 
     constructor(private state: DropdownStateService) {}
+
+    public ngOnInit() {
+        this.state.dropdownState.onItemClicked.subscribe(item => {
+            this.onItemClicked.emit(item);
+
+            if (item.preventClose) {
+                return;
+            }
+
+            this.hide.call(this);
+        });
+
+        if (this.button) {
+            this.button.onMenuToggled.subscribe(() => {
+                this.toggleMenu();
+            });
+        }
+
+        this.state.dropdownState.onItemSelected.subscribe(item => {
+            this.onItemSelected.emit(item);
+        });
+
+        this.state.dropdownState.onItemDestroyed.subscribe((item: Ng2MenuItem) => {
+            let newSelectedItem: Ng2MenuItem | undefined;
+            const items = this.menu.items.toArray();
+
+            if (item !== this.state.dropdownState.selectedItem) {
+                return;
+            }
+
+            if (this.menu.focusFirstElement) {
+                newSelectedItem = item === items[0] && items.length > 1 ? items[1] : items[0];
+            }
+
+            this.state.dropdownState.select(newSelectedItem);
+        });
+    }
 
     /**
      * @name toggleMenu
@@ -54,10 +92,7 @@ export class Ng2Dropdown {
      * @param position
      */
     public show(position = this.button.getPosition()): void {
-        this.menu.show();
-
-        // update menu position based on its button's
-        this.menu.updatePosition(position);
+        this.menu.show(position, this.dynamicUpdate);
         this.onShow.emit(this);
     }
 
@@ -66,28 +101,8 @@ export class Ng2Dropdown {
      */
     @HostListener('window:scroll')
     public scrollListener() {
-        if (this.state.menuState.isVisible && this.button && this.dynamicUpdate) {
-            this.menu.updatePosition(this.button.getPosition());
+        if (this.button && this.dynamicUpdate) {
+            this.menu.updatePosition(this.button.getPosition(), true);
         }
-    }
-
-    public ngOnInit() {
-        this.state.dropdownState.onItemClicked.subscribe(item => {
-            this.onItemClicked.emit(item);
-
-            if (item.preventClose) {
-                return;
-            }
-
-            this.hide.call(this);
-        });
-
-        if (this.button) {
-            this.button.onMenuToggled.subscribe(() => {
-                this.toggleMenu();
-            });
-        }
-
-        this.state.dropdownState.onItemSelected.subscribe(item => this.onItemSelected.emit(item));
     }
 }

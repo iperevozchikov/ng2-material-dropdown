@@ -28,22 +28,20 @@ import { DropdownStateService } from '../../services/dropdown-state.service';
     animations: [
         trigger('fade', [
             state('visible', style(
-                {display: 'block', height: '*', width: '*'}
+                {display: 'block', opacity: 1, height: '*', width: '*'}
             )),
             state('hidden', style(
-                {display: 'none', overflow: 'hidden', height: 0, width: 0}
+                {display: 'none', opacity: 0, overflow: 'hidden', height: 0, width: 0}
             )),
             transition('hidden => visible', [
-                animate('250ms ease-in', keyframes([
-                    style({opacity: 0, offset: 0}),
-                    style({opacity: 1, offset: 1, height: '*', width: '*'}),
-                ]))
+                animate('250ms ease-in',
+                    style({opacity: 1, height: '*', width: '*'})
+                )
             ]),
             transition('visible => hidden', [
-                animate('350ms ease-out', keyframes([
-                    style({opacity: 1, offset: 0}),
-                    style({opacity: 0, offset: 1, width: '0', height: '0'}),
-                ]))
+                animate('350ms ease-out',
+                    style({opacity: 0, width: 0, height: 0})
+                )
             ])
         ]),
         trigger('opacity', [
@@ -66,14 +64,12 @@ import { DropdownStateService } from '../../services/dropdown-state.service';
 export class Ng2DropdownMenu {
     /**
      * @name width
-     * @type {number} [2, 4, 6]
      */
     @Input() public width: number = 4;
 
     /**
      * @description if set to true, the first element of the dropdown will be automatically focused
      * @name focusFirstElement
-     * @type {boolean}
      */
     @Input() public focusFirstElement: boolean = true;
 
@@ -85,13 +81,16 @@ export class Ng2DropdownMenu {
 
     /**
      * @name appendToBody
-     * @type {boolean}
      */
     @Input() public appendToBody: boolean = true;
 
     /**
+     * @name zIndex
+     */
+    @Input() public zIndex = 1000;
+
+    /**
      * @name items
-     * @type {QueryList<Ng2MenuItem>}
      */
     @ContentChildren(Ng2MenuItem, { descendants: true }) public items: QueryList<Ng2MenuItem>;
 
@@ -110,20 +109,21 @@ export class Ng2DropdownMenu {
      * @name show
      * @shows menu and selects first item
      */
-    public show(): void {
+    public show(position?: ClientRect, dynamic = true): void {
         const dc = typeof document !== 'undefined' ? document : undefined;
         const wd = typeof window !== 'undefined' ? window : undefined;
+
+        if (!this.state.menuState.isVisible) {
+            // setting handlers
+            this.listeners.handleKeypress = this.renderer.listen(dc.body, 'keydown', this.handleKeypress.bind(this));
+            this.listeners.arrowHandler = this.renderer.listen(wd, 'keydown', arrowKeysHandler);
+        }
 
         // update state
         this.state.menuState.isVisible = true;
 
-        // setting handlers
-        if (!!dc) {
-            this.listeners.handleKeypress = this.renderer.listen(dc.body, 'keydown', this.handleKeypress.bind(this));
-        }
-
-        if (!!wd) {
-            this.listeners.arrowHandler = this.renderer.listen(wd, 'keydown', arrowKeysHandler);
+        if (position) {
+            this.updatePosition(position, dynamic);
         }
     }
 
@@ -138,23 +138,19 @@ export class Ng2DropdownMenu {
         this.state.dropdownState.unselect();
 
         // call function to unlisten
-        if (!!this.listeners.arrowHandler) {
-            this.listeners.arrowHandler();
-        }
-
-        if (!!this.listeners.handleKeypress) {
-            this.listeners.handleKeypress();
-        }
+        this.listeners.arrowHandler ? this.listeners.arrowHandler() : undefined;
+        this.listeners.handleKeypress ? this.listeners.handleKeypress() : undefined;
     }
 
     /**
      * @name updatePosition
      * @desc updates the menu position every time it is toggled
      * @param position {ClientRect}
+     * @param dynamic {boolean}
      */
-    public updatePosition(position: ClientRect): void {
+    public updatePosition(position: ClientRect, dynamic: boolean): void {
         this.position = position;
-        this.ngDoCheck();
+        this.updateOnChange(dynamic);
     }
 
     /**
@@ -165,21 +161,17 @@ export class Ng2DropdownMenu {
     public handleKeypress($event): void {
         const key = $event.keyCode;
         const items = this.items.toArray();
-        const selectedItem = this.state.dropdownState.selectedItem;
-        if (!!selectedItem) {
-            const index = items.indexOf(selectedItem!);
+        const index = items.indexOf(this.state.dropdownState.selectedItem);
 
-            if (!ACTIONS.hasOwnProperty(key)) {
-                return;
-            }
-
-            ACTIONS[key].call(this, index, items, this.state.dropdownState);
+        if (!ACTIONS.hasOwnProperty(key)) {
+            return;
         }
+
+        ACTIONS[key].call(this, index, items, this.state.dropdownState);
     }
 
     /**
      * @name getMenuElement
-     * @returns {Element}
      */
     private getMenuElement(): Element {
         return this.element.nativeElement.children[0];
@@ -188,9 +180,8 @@ export class Ng2DropdownMenu {
     /**
      * @name calcPositionOffset
      * @param position
-     * @returns {{top: string, left: string}}
      */
-    private calcPositionOffset(position): { top: string, left: string } | undefined {
+    private calcPositionOffset(position): { top: string, left: string } {
         const wd = typeof window !== 'undefined' ? window : undefined;
         const dc = typeof document !== 'undefined' ? document : undefined;
 
@@ -253,28 +244,26 @@ export class Ng2DropdownMenu {
 
     public ngOnInit() {
         const dc = typeof document !== 'undefined' ? document : undefined;
-        if (this.appendToBody && !!dc) {
+        if (this.appendToBody) {
             // append menu element to the body
             dc.body.appendChild(this.element.nativeElement);
         }
     }
 
-    public ngDoCheck() {
-        if (this.state.menuState.isVisible && this.position) {
-            const element = this.getMenuElement();
-            const position = this.calcPositionOffset(this.position);
+    public updateOnChange(dynamic = true) {
+        const element = this.getMenuElement();
+        const position = this.calcPositionOffset(this.position);
 
-            if (!!position) {
-                this.renderer.setElementStyle(element, 'top', position.top);
-                this.renderer.setElementStyle(element, 'left', position.left);
-            }
+        if (position) {
+            this.renderer.setElementStyle(element, 'top', position.top.toString());
+            this.renderer.setElementStyle(element, 'left', position.left.toString());
+        }
 
-            // select first item unless user disabled this option
-            if (this.focusFirstElement &&
-                this.items.first &&
-                !this.state.dropdownState.selectedItem) {
-                this.state.dropdownState.select(this.items.first, false);
-            }
+        // select first item unless user disabled this option
+        if (this.focusFirstElement &&
+            this.items.first &&
+            !this.state.dropdownState.selectedItem) {
+            this.state.dropdownState.select(this.items.first, false);
         }
     }
 
